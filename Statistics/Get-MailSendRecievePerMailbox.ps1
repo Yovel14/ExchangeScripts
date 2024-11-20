@@ -4,7 +4,7 @@
 .DESCRIPTION
 	Gets Amount Of mails Each Mailbox Sends And Receives and outputs each to CSV files.
 .EXAMPLE
-	PS> .\Get-MailSendRecievePerMailbox.ps1 -StartDate (Get-Date).AddDays(-5) -MailsReceiveCSVPath .\MailsMailboxRecieved.csv -MailsSendCSVPath .\MailsMailboxSend.csv
+	PS> .\Get-MailSendRecievePerMailbox.ps1 -StartDate (Get-Date).AddDays(-5) -EndDate (Get-Date).AddMinutes(-30)
 .LINK
 	https://github.com/Yovel14/ExchangeScripts
 .NOTES
@@ -18,22 +18,29 @@ param (
 	[Parameter(Mandatory=$false)]
 	[datetime]$endDate = (Get-Date),
 
-	[Parameter(Mandatory=$true)]
-    [ValidateScript({if(Test-Path -Path $_){ Throw "File $_ already Exists"}})]
-	[String]$MailsReceiveCSVPath,
+	[Parameter(Mandatory=$false)]
+	[String]$MailsReceiveCSVPath = "MailsReceive",
 
-	[Parameter(Mandatory=$true)]
-    [ValidateScript({if(Test-Path -Path $_){ Throw "File $_ already Exists"}})]
-	[String]$MailsSendCSVPath,
+	[Parameter(Mandatory=$false)]
+	[String]$MailsSendCSVPath = "MailsSend",
 
 	[Parameter(Mandatory=$false)]
 	[int]$JobParallelLimit = 4
 )
 
-
 if($StartDate -gt $EndDate)
 {
     Throw "StartDate is After EndDate"
+}
+
+if(Test-Path -Path "$MailsReceiveCSVPath-$(($endDate-$StartDate).days)Days.csv")
+{
+    Throw "MailsReceiveCSVPath file Already Exists '$MailsReceiveCSVPath-$(($endDate-$StartDate).days)Days.csv'"
+}
+
+if(Test-Path -Path "$MailsSendCSVPath-$(($endDate-$StartDate).days)Days.csv")
+{
+    Throw "MailsSendCSVPath file Already Exists '$MailsSendCSVPath-$(($endDate-$StartDate).days)Days.csv'"
 }
 
 Add-PSSnapin *xch*
@@ -72,7 +79,7 @@ Wait-ForAllJobs
 $RecipientsData = get-job | Receive-Job
 Get-Job | Remove-Job
 $calculatedGroup = $RecipientsData | group -Property Name | %{[PSCustomObject](@{name = $_.name; count = (($_.group | measure -Sum -Property count)).sum})}
-$calculatedGroup | Export-Csv -NoTypeInformation -path $MailsReceiveCSVPath
+$calculatedGroup | Export-Csv -NoTypeInformation -path "$MailsReceiveCSVPath-$(($endDate-$StartDate).days)Days.csv"
 $RecipientsData = $null
 $calculatedGroup = $null
 
@@ -92,7 +99,7 @@ Wait-ForAllJobs
 $SendersData = get-job | Receive-Job
 Get-Job | Remove-Job
 $calculatedGroup = $SendersData | group -Property Name | %{[PSCustomObject](@{name = $_.name; count = (($_.group | measure -Sum -Property count)).sum})}
-$calculatedGroup | Export-Csv -NoTypeInformation -Path $MailsSendCSVPath
+$calculatedGroup | Export-Csv -NoTypeInformation -Path "$MailsSendCSVPath-$(($endDate-$StartDate).days)Days.csv"
 $SendersData = $null
 $calculatedGroup = $null
 
