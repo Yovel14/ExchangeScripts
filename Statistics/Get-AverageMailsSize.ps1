@@ -65,4 +65,6 @@ $countSum = ($AverageData | measure -Property count -Sum).Sum
 $Average = ($AverageData | %{$_.count * $_.Average} | measure -Sum).Sum / $countSum
 $Average | Out-File ".\AverageMailSize-Bytes$(($StartDate-$EndDate).days)Day.txt"
 
+write-host "Average Mail Size: $Average"
+Write-Host "Writing to file 'AverageMailSize-Bytes$(($StartDate-$EndDate).days)Day.txt'"
 Write-Host -ForegroundColor Cyan "Done Recipients data Collection"
